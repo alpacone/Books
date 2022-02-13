@@ -41,6 +41,12 @@ namespace Tests
 
             var q11 = new Query("a NOT b");
             Assert.AreEqual(q11.ToString(), "OR(AND(a, NOT(b)))");
+
+            var q12 = new Query("a OR b OR c OR d");
+            Assert.AreEqual(q12.ToString(), "OR(AND(a), AND(b), AND(c), AND(d))");
+
+            var q13 = new Query("NOT a AND b OR c AND NOT d");
+            Assert.AreEqual(q13.ToString(), "OR(AND(NOT(a), b), AND(c, NOT(d)))");
         }
     }
 }

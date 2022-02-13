@@ -1,5 +1,14 @@
-﻿namespace Books
+﻿using System.Collections.Generic;
+
+namespace Books
 {
+    enum OpType
+    {
+        Or,
+        And,
+        Leaf
+    }
+
     public class Query
     {
         OpType opType;
@@ -7,18 +16,18 @@
         bool isNegated = false;
         List<Query> clauses = new List<Query>();
 
-        public Query() { this.opType = OpType.And; }
+        public Query() { opType = OpType.And; }
 
         public Query(string term, bool isNegated)
         {
-            this.opType = OpType.Leaf;
+            opType = OpType.Leaf;
             this.term = term;
             this.isNegated = isNegated;
         }
 
         public Query(string query)
         {
-            this.opType = OpType.Or;
+            opType = OpType.Or;
             string[] parts = splitString(query, new string[] { " OR " });
             foreach (string part in parts)
             {
@@ -44,7 +53,7 @@
                 {
                     prevWasOp = true;
                 }
-                else if (prevWasOp || i == 0)
+                else
                 {
                     and.clauses.Add(new Query(tokens[i], false));
                     prevWasOp = false;
@@ -60,19 +69,57 @@
 
         public override string ToString()
         {
-            if (this.opType == OpType.Or || this.opType == OpType.And)
+            if (opType == OpType.Or || opType == OpType.And)
             {
-                return string.Format(this.opType == OpType.Or ? "OR({0})" : "AND({0})", string.Join(", ", this.clauses));
+                return string.Format(opType == OpType.Or ? "OR({0})" : "AND({0})", string.Join(", ", clauses));
             }
-            else if (this.opType == OpType.Leaf)
+            else if (opType == OpType.Leaf)
             {
-                return string.Format(isNegated ? "NOT({0})" : "{0}", this.term);
+                return string.Format(isNegated ? "NOT({0})" : "{0}", term);
             }
             else
             {
-                throw new Exception("Not supported opType");
+                throw new Exception("Unsupported opType");
             }
+        }
 
+        public List<SearchResult> evaluate(ReversedIndex reversedIndex)
+        {
+            if (opType == OpType.Or)
+            {
+                return clauses.SelectMany(c => c.evaluate(reversedIndex)).Distinct().ToList();
+            }
+            else if (opType == OpType.And)
+            {
+                var listOfLists = clauses.Select(c => c.evaluate(reversedIndex));
+                return IntersectAll(listOfLists);
+            }
+            else if (opType == OpType.Leaf)
+            {
+                return reversedIndex.searchWord(term, !isNegated);
+            }
+            else
+            {
+                throw new Exception("Unsupported opType");
+            }
+        }
+
+        public List<SearchResult> IntersectAll(IEnumerable<List<SearchResult>> lists)
+        {
+            var results = new List<SearchResult>(lists.First());
+            var files = new HashSet<string>(results.Select(res => res.fileName));
+
+            foreach (var list in lists.Skip(1))
+            {
+                foreach (var sr in list)
+                {
+                    if (files.Contains(sr.fileName))
+                    {
+                        results.Add(sr);
+                    }
+                }
+            }
+            return results.Distinct().ToList();
         }
     }
 }
