@@ -18,20 +18,22 @@ namespace Books
 
         public List<SearchResult> searchWord(string word, bool includes)
         {
-            List<List<int>> wordInFiles = null;
-            if (storage.TryGetValue(word, out wordInFiles))
+            var wordInFiles = new List<List<int>>();
+            var res = new List<SearchResult>();
+
+            if (!storage.TryGetValue(word.ToLower(), out wordInFiles))
             {
-                var res = new List<SearchResult>();
-                for (int i = 0; i < wordInFiles.Count; i++)
-                {
-                    if ((wordInFiles[i] != null) == includes)
-                    {
-                        res.Add(new SearchResult(fileNames[i], word, wordInFiles[i]));
-                    }
-                }
-                return res;
+                wordInFiles = Enumerable.Repeat<List<int>>(null, fileNames.Count).ToList();
             }
-            return new List<SearchResult>();
+
+            for (int i = 0; i < wordInFiles.Count; i++)
+            {
+                if ((wordInFiles[i] != null) == includes)
+                {
+                    res.Add(new SearchResult(fileNames[i], word, wordInFiles[i]));
+                }
+            }
+            return res;
         }
 
         List<List<int>> AddFilesRow(string word)

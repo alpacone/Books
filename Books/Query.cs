@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Books
+﻿namespace Books
 {
     enum OpType
     {
