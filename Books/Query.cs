@@ -37,7 +37,6 @@
         {
             var and = new Query();
 
-            bool prevWasOp = false;
             string[] tokens = splitString(query, new string[] { " " });
             for (int i = 0; i < tokens.Length; i++)
             {
@@ -45,16 +44,10 @@
                 {
                     and.clauses.Add(new Query(tokens[i + 1], true));
                     i++;
-                    prevWasOp = true;
                 }
-                else if (tokens[i] == "AND")
-                {
-                    prevWasOp = true;
-                }
-                else
+                else if (tokens[i] != "AND")
                 {
                     and.clauses.Add(new Query(tokens[i], false));
-                    prevWasOp = false;
                 }
             }
             return and;
