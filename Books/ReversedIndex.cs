@@ -1,54 +1,66 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.Text;
 
 namespace Books
 {
     public class ReversedIndex
     {
         List<string> fileNames;
-        Dictionary<string, List<List<int>>> storage = new Dictionary<string, List<List<int>>>();
+        ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> storage = new ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>>();
 
         public ReversedIndex(List<string> fileNames)
         {
             this.fileNames = fileNames;
+        }
+
+        public async Task BuildIndex()
+        {
+            var tasks = new List<Task>();
             foreach (string name in fileNames)
             {
-                AddFile(name);
+                tasks.Add(AddFile(name));
             }
+            await Task.WhenAll(tasks);
         }
 
         public List<SearchResult> searchWord(string word, bool includes)
         {
-            var wordInFiles = new List<List<int>>();
+            ConcurrentDictionary<string, List<int>> wordInFiles = null;
             var res = new List<SearchResult>();
 
             if (!storage.TryGetValue(word.ToLower(), out wordInFiles))
             {
-                wordInFiles = Enumerable.Repeat<List<int>>(null, fileNames.Count).ToList();
+                wordInFiles = new ConcurrentDictionary<string, List<int>>();
+                foreach (var name in fileNames)
+                {
+                    wordInFiles.TryAdd(name, null);
+                }
             }
 
-            for (int i = 0; i < wordInFiles.Count; i++)
+            foreach (var fileOcc in wordInFiles)
             {
-                if ((wordInFiles[i] != null) == includes)
+                if ((fileOcc.Value != null) == includes)
                 {
-                    res.Add(new SearchResult(fileNames[i], word, wordInFiles[i]));
+                    res.Add(new SearchResult(fileOcc.Key, word, fileOcc.Value));
                 }
             }
             return res;
         }
 
-        List<List<int>> AddFilesRow(string word)
+        ConcurrentDictionary<string, List<int>> AddFilesRow(string word)
         {
-            if (storage.ContainsKey(word)) return storage[word];
-            List<List<int>> row = Enumerable.Repeat<List<int>>(null, fileNames.Count).ToList();
-            storage.Add(word, row);
-            return row;
+            return storage.GetOrAdd(word, key =>
+            {
+                Dictionary<string, List<int>> dict = fileNames.ToDictionary(x => x, x => (List<int>)null);
+                return new ConcurrentDictionary<string, List<int>>(dict);
+            });
         }
 
-        public void AddFile(string path)
+        public async Task AddFile(string path)
         {
             Console.WriteLine("Indexing file: {0}", path);
 
-            string rawText = File.ReadAllText(path, Encoding.GetEncoding(1251));
+            string rawText = await File.ReadAllTextAsync(path, Encoding.GetEncoding(1251));
             string fullText = rawText.ToLower();
 
             string alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя-";
@@ -68,6 +80,7 @@ namespace Books
                 if (isWord && (!isAlpha || endIndex == fullText.Length - 1))
                 {
                     var word = fullText.Substring(startIndex, endIndex - startIndex);
+                    word = Porter.Stem(word);
                     if (words.ContainsKey(word))
                     {
                         words[word].Add(startIndex);
@@ -80,13 +93,11 @@ namespace Books
                 }
             }
 
-            var fileIndex = fileNames.IndexOf(path);
             foreach (var item in words)
             {
                 var occurrences = AddFilesRow(item.Key);
-                occurrences[fileIndex] = item.Value;
+                occurrences.AddOrUpdate(path, item.Value, (key, oldValue) => item.Value);
             }
-
             Console.WriteLine("Indexed: {0}", path);
         }
     }

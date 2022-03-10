@@ -35,7 +35,7 @@ namespace Books
             Console.ResetColor();
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.OutputEncoding = Encoding.Unicode;
@@ -43,6 +43,7 @@ namespace Books
 
             string[] files = Directory.GetFiles("data", "*.txt");
             var reversedIndex = new ReversedIndex(files.ToList());
+            await reversedIndex.BuildIndex();
             Console.Clear();
 
             while (true)
