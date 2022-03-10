@@ -19,7 +19,7 @@
         public Query(string term, bool isNegated)
         {
             opType = OpType.Leaf;
-            this.term = term;
+            this.term = Porter.Stem(term);
             this.isNegated = isNegated;
         }
 
@@ -78,7 +78,8 @@
         {
             if (opType == OpType.Or)
             {
-                return clauses.SelectMany(c => c.evaluate(reversedIndex)).Distinct().ToList();
+                var listOfLists = clauses.Select(c => c.evaluate(reversedIndex));
+                return UnionAll(listOfLists);
             }
             else if (opType == OpType.And)
             {
@@ -95,22 +96,44 @@
             }
         }
 
-        public List<SearchResult> IntersectAll(IEnumerable<List<SearchResult>> lists)
+        public List<SearchResult> UnionAll(IEnumerable<List<SearchResult>> listOfLists)
         {
-            var results = new List<SearchResult>(lists.First());
-            var files = new HashSet<string>(results.Select(res => res.fileName));
-
-            foreach (var list in lists.Skip(1))
+            var docs = new Dictionary<string, int>();
+            foreach (var list in listOfLists)
             {
                 foreach (var sr in list)
                 {
-                    if (files.Contains(sr.fileName))
-                    {
-                        results.Add(sr);
-                    }
+                    if (!docs.ContainsKey(sr.fileName)) docs[sr.fileName] = 0;
+                    docs[sr.fileName] += sr.occurrences;
                 }
             }
-            return results.Distinct().ToList();
+            return docs.Select(x => new SearchResult(x.Key, x.Value)).ToList();
+        }
+
+        public List<SearchResult> IntersectAll(IEnumerable<List<SearchResult>> listOfLists)
+        {
+            listOfLists.OrderBy(x => x.Count);
+
+            var firstList = listOfLists.First();
+            var docs = new Dictionary<string, int>();
+            foreach (var sr in firstList)
+            {
+                docs[sr.fileName] = sr.occurrences;
+            }
+
+            foreach (var list in listOfLists.Skip(1))
+            {
+                foreach (var sr in list)
+                {
+                    if (docs.ContainsKey(sr.fileName)) docs[sr.fileName] += sr.occurrences;
+                }
+                foreach (var sr in firstList)
+                {
+                    if (list.All(x => x.fileName != sr.fileName)) docs.Remove(sr.fileName);
+                }
+            }
+
+            return docs.Select(x => new SearchResult(x.Key, x.Value)).ToList();
         }
     }
 }

@@ -6,7 +6,7 @@ namespace Books
     public class ReversedIndex
     {
         List<string> fileNames;
-        ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> storage = new ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>>();
+        ConcurrentDictionary<string, ConcurrentDictionary<string, int>> storage = new ConcurrentDictionary<string, ConcurrentDictionary<string, int>>();
 
         public ReversedIndex(List<string> fileNames)
         {
@@ -25,34 +25,35 @@ namespace Books
 
         public List<SearchResult> searchWord(string word, bool includes)
         {
-            ConcurrentDictionary<string, List<int>> wordInFiles = null;
-            var res = new List<SearchResult>();
+            ConcurrentDictionary<string, int> wordInFiles = null;
 
             if (!storage.TryGetValue(word.ToLower(), out wordInFiles))
             {
-                wordInFiles = new ConcurrentDictionary<string, List<int>>();
-                foreach (var name in fileNames)
-                {
-                    wordInFiles.TryAdd(name, null);
-                }
+                wordInFiles = new ConcurrentDictionary<string, int>();
             }
 
+            foreach (var name in fileNames)
+            {
+                wordInFiles.TryAdd(name, 0);
+            }
+
+            var res = new List<SearchResult>();
             foreach (var fileOcc in wordInFiles)
             {
-                if ((fileOcc.Value != null) == includes)
+                if ((fileOcc.Value != 0) == includes)
                 {
-                    res.Add(new SearchResult(fileOcc.Key, word, fileOcc.Value));
+                    res.Add(new SearchResult(fileOcc.Key, fileOcc.Value));
                 }
             }
             return res;
         }
 
-        ConcurrentDictionary<string, List<int>> AddFilesRow(string word)
+        ConcurrentDictionary<string, int> AddFilesRow(string word)
         {
             return storage.GetOrAdd(word, key =>
             {
-                Dictionary<string, List<int>> dict = fileNames.ToDictionary(x => x, x => (List<int>)null);
-                return new ConcurrentDictionary<string, List<int>>(dict);
+                Dictionary<string, int> dict = fileNames.ToDictionary(x => x, x => 0);
+                return new ConcurrentDictionary<string, int>(dict);
             });
         }
 
@@ -65,7 +66,7 @@ namespace Books
 
             string alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя-";
 
-            var words = new Dictionary<string, List<int>>();
+            var words = new Dictionary<string, int>();
 
             var isWord = false;
             int startIndex = 0;
@@ -81,14 +82,8 @@ namespace Books
                 {
                     var word = fullText.Substring(startIndex, endIndex - startIndex);
                     word = Porter.Stem(word);
-                    if (words.ContainsKey(word))
-                    {
-                        words[word].Add(startIndex);
-                    }
-                    else
-                    {
-                        words[word] = new List<int>() { startIndex };
-                    }
+                    if (!words.ContainsKey(word)) words[word] = 0;
+                    words[word] += 1;
                     isWord = false;
                 }
             }

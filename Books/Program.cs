@@ -53,36 +53,13 @@ namespace Books
                 if (s == "Q") break;
 
                 var q = new Query(s);
+                Console.WriteLine(q);
                 var docs = q.evaluate(reversedIndex);
 
-                var results = new Dictionary<string, int>();
-                foreach (var doc in docs)
+                var sortedResults = docs.OrderByDescending(item => item.occurrences);
+                foreach (var res in sortedResults)
                 {
-                    if (doc.occurrences == null)
-                    {
-                        results[doc.fileName] = 0;
-                    }
-                    else if (results.ContainsKey(doc.fileName))
-                    {
-                        results[doc.fileName] += doc.occurrences.Count;
-                    }
-                    else
-                    {
-                        results[doc.fileName] = doc.occurrences.Count;
-                    }
-                }
-
-                var sortedResults = results.OrderByDescending(item => item.Value);
-                if (sortedResults.Count() > 0)
-                {
-                    foreach (var res in sortedResults)
-                    {
-                        PrintDocument(res.Key, res.Value);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("По запросу '{0}' ничего не найдено", s);
+                    PrintDocument(res.fileName, res.occurrences);
                 }
             }
         }

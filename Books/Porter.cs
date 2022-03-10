@@ -104,7 +104,7 @@ namespace Books
             return word;
         }
 
-         static string ReplaceFirst(MatchCollection collection, string part)
+        static string ReplaceFirst(MatchCollection collection, string part)
         {
             string tmp = "";
             if (collection.Count == 0)
