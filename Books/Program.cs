@@ -35,7 +35,7 @@ namespace Books
             Console.ResetColor();
         }
 
-        static async Task Main(string[] args)
+        static async Task Main()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.OutputEncoding = Encoding.Unicode;
@@ -43,8 +43,10 @@ namespace Books
 
             string[] files = Directory.GetFiles("data", "*.txt");
             var reversedIndex = new ReversedIndex(files.ToList());
-            await reversedIndex.BuildIndex();
+            reversedIndex.BuildIndex();
             Console.Clear();
+            var tree = reversedIndex.storage;
+            Console.WriteLine($"nodes={tree.Count} depth={tree.Depth} [log2({tree.Count})={Math.Log2(tree.Count)}]");
 
             while (true)
             {
@@ -55,6 +57,8 @@ namespace Books
                 var q = new Query(s);
                 Console.WriteLine(q);
                 var docs = q.evaluate(reversedIndex);
+
+                // use case и architecture
 
                 var sortedResults = docs.OrderByDescending(item => item.occurrences);
                 foreach (var res in sortedResults)
