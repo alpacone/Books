@@ -13,7 +13,7 @@
         public Node parent;
         public Node left;
         public Node right;
-        public Dictionary<string, int> books = new Dictionary<string, int>();
+        public HashSet<string> words = new HashSet<string>();
 
         public static Node CreateLeaf(Node parent)
         {
@@ -151,7 +151,7 @@
             y.parent = node.parent;
             if (isNilNode(node.parent))
             {
-                this.root = y;
+                root = y;
             }
             else
             {
@@ -188,7 +188,7 @@
             y.parent = node.parent;
             if (isNilNode(node.parent))
             {
-                this.root = y;
+                root = y;
             }
             else
             {
@@ -214,7 +214,6 @@
             {
                 root = newNode;
                 newNode.color = Color.Black;
-                newNode.parent = null;
             }
             else
             {
@@ -235,7 +234,7 @@
                         x = x.right;
                     }
                 }
-                newNode.parent = parent;
+
                 if (cmpStr(key, parent.key) < 0)
                 {
                     parent.left = newNode;
@@ -245,6 +244,7 @@
                     parent.right = newNode;
                 }
 
+                newNode.parent = parent;
                 newNode.left = Node.CreateLeaf(newNode);
                 newNode.right = Node.CreateLeaf(newNode);
                 newNode.color = Color.Red;

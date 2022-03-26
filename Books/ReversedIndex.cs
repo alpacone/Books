@@ -5,7 +5,8 @@ namespace Books
     public class ReversedIndex
     {
         List<string> fileNames;
-        public BinarySearchTree storage = new BinarySearchTree();
+        private Dictionary<string, Dictionary<string, int>> storage = new Dictionary<string, Dictionary<string, int>>();
+        public BinarySearchTree trigramIndex = new BinarySearchTree();
 
         public ReversedIndex(List<string> fileNames)
         {
@@ -14,39 +15,55 @@ namespace Books
 
         public void BuildIndex()
         {
-            var tasks = new List<Task<Dictionary<string, int>>>();
+            var tasks = new List<Task<IndexResult>>();
             foreach (string name in fileNames)
             {
                 tasks.Add(AddFile(name));
             }
             Task.WaitAll(tasks.ToArray());
 
-            for (int i = 0; i < tasks.Count; i++)
+            foreach (var t in tasks)
             {
-                var t = tasks[i];
-                var name = fileNames[i];
-                foreach (var item in t.Result)
+                var r = t.Result;
+                foreach (var fileCount in r.occurrences)
                 {
-                    var n = AddFilesRow(item.Key);
-                    n.books[name] = item.Value;
+                    if (storage.ContainsKey(fileCount.Key))
+                    {
+                        storage[fileCount.Key].Add(r.fileName, fileCount.Value);
+                    }
+                    else
+                    {
+                        storage.Add(fileCount.Key, new Dictionary<string, int>() { [r.fileName] = fileCount.Value });
+                    }
+                }
+
+                foreach (var wordTrigrams in r.trigrams)
+                {
+                    foreach (var trigram in wordTrigrams.Value)
+                    {
+                        var n = trigramIndex.Add(trigram);
+                        n.words.Add(wordTrigrams.Key);
+                    }
                 }
             }
         }
 
         public List<SearchResult> searchWord(string word, bool includes)
         {
-            var results = new Dictionary<string, int>();
+            Dictionary<string, int> wordInFiles = null;
 
-            var node = storage.Find(word.ToLower());
-            if (node != null) results = node.books;
+            if (!storage.TryGetValue(word.ToLower(), out wordInFiles))
+            {
+                wordInFiles = new Dictionary<string, int>();
+            }
 
             foreach (var name in fileNames)
             {
-                if (!results.ContainsKey(name)) results.Add(name, 0);
+                wordInFiles.TryAdd(name, 0);
             }
 
             var res = new List<SearchResult>();
-            foreach (var sr in results)
+            foreach (var sr in wordInFiles)
             {
                 if ((sr.Value != 0) == includes)
                 {
@@ -56,14 +73,7 @@ namespace Books
             return res;
         }
 
-        Node AddFilesRow(string word)
-        {
-            var n = storage.Find(word);
-            if (n == null) n = storage.Add(word);
-            return n;
-        }
-
-        public async Task<Dictionary<string, int>> AddFile(string path)
+        public async Task<IndexResult> AddFile(string path)
         {
             Console.WriteLine("Indexing file: {0}", path);
 
@@ -94,8 +104,26 @@ namespace Books
                 }
             }
 
+            var trigrams = new Dictionary<string, HashSet<string>>();
+            foreach (var pair in words)
+            {
+                trigrams[pair.Key] = toTrigrams(pair.Key);
+            }
+
             Console.WriteLine("Indexed: {0}", path);
-            return words;
+            return new IndexResult(path, words, trigrams);
+        }
+
+        private HashSet<string> toTrigrams(string word)
+        {
+            var withPadding = $"${word}$";
+
+            var trigrams = new HashSet<string>();
+            for (int i = 0; i < withPadding.Length - 2; i++)
+            {
+                trigrams.Add(withPadding.Substring(i, 3));
+            }
+            return trigrams;
         }
     }
 }

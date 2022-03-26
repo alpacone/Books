@@ -45,8 +45,8 @@ namespace Books
             var reversedIndex = new ReversedIndex(files.ToList());
             reversedIndex.BuildIndex();
             Console.Clear();
-            var tree = reversedIndex.storage;
-            Console.WriteLine($"nodes={tree.Count} depth={tree.Depth} [log2({tree.Count})={Math.Log2(tree.Count)}]");
+            var tree = reversedIndex.trigramIndex;
+            Console.WriteLine($"trigrams={tree.Count} depth={tree.Depth} [log2({tree.Count})={Math.Log2(tree.Count)}]");
 
             while (true)
             {
