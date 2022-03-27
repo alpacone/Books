@@ -48,11 +48,11 @@ namespace Books
             }
         }
 
-        public List<SearchResult> searchWord(string word, bool includes)
+        private List<SearchResult> searchWord(string word, bool includes)
         {
             Dictionary<string, int> wordInFiles = null;
 
-            if (!storage.TryGetValue(word.ToLower(), out wordInFiles))
+            if (!storage.TryGetValue(word, out wordInFiles))
             {
                 wordInFiles = new Dictionary<string, int>();
             }
@@ -71,6 +71,25 @@ namespace Books
                 }
             }
             return res;
+        }
+
+        private List<SearchResult> searchTrigrams(string pattern, bool includes)
+        {
+            var trigrams = toTrigrams(pattern).Where(t => !t.Contains('*'));
+            var words = trigrams
+                .Select(t => trigramIndex.Find(t))
+                .Where(n => n != null)
+                .SelectMany(n => n.words)
+                .Distinct()
+                .Where(w => wordMatchesPattern(w, pattern));
+            Console.WriteLine(string.Join(",", words));
+
+            return words.SelectMany(w => searchWord(w, includes)).ToList();
+        }
+
+        public List<SearchResult> Find(string word, bool includes)
+        {
+            return word.Contains('*') ? searchTrigrams(word, includes) : searchWord(word, includes);
         }
 
         public async Task<IndexResult> AddFile(string path)
@@ -116,7 +135,7 @@ namespace Books
 
         private HashSet<string> toTrigrams(string word)
         {
-            var withPadding = $"${word}$";
+            var withPadding = $"$${word}$$";
 
             var trigrams = new HashSet<string>();
             for (int i = 0; i < withPadding.Length - 2; i++)
@@ -124,6 +143,24 @@ namespace Books
                 trigrams.Add(withPadding.Substring(i, 3));
             }
             return trigrams;
+        }
+
+        public static bool wordMatchesPattern(string word, string pattern)
+        {
+            var parts = pattern.Split('*', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return false;
+
+            if (!pattern.StartsWith('*') && !word.StartsWith(parts.First())) return false;
+            if (!pattern.EndsWith('*') && !word.EndsWith(parts.Last())) return false;
+
+            int prev = 0;
+            foreach (var p in parts)
+            {
+                int i = word.IndexOf(p, prev);
+                if (i < 0) return false;
+                prev = i + p.Length;
+            }
+            return true;
         }
     }
 }

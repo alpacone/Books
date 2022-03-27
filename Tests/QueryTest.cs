@@ -48,5 +48,23 @@ namespace Tests
             var q13 = new Query("NOT a AND b OR c AND NOT d");
             Assert.AreEqual(q13.ToString(), "OR(AND(NOT(a), b), AND(c, NOT(d)))");
         }
+
+        [TestMethod]
+        public void TestWordPattern()
+        {
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("дом", "д*м"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("дым", "д*м"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("доход", "д*м"), false);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("доход", "х*д"), false);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("доход", "д*о"), false);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("доход", "д*д"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("весна", "ве*сна"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("весна", "вес*"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("весна", "*сна"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("лилипут", "ли*ут"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("лилипут", "ли*ли*ут"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("лилипут", "*ли*"), true);
+            Assert.AreEqual(ReversedIndex.wordMatchesPattern("лилипутов", "ли*ут"), false);
+        }
     }
 }

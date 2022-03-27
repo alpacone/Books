@@ -88,7 +88,7 @@
             }
             else if (opType == OpType.Leaf)
             {
-                return reversedIndex.searchWord(term, !isNegated);
+                return reversedIndex.Find(term.ToLower(), !isNegated);
             }
             else
             {
