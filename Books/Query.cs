@@ -9,10 +9,10 @@
 
     public class Query
     {
-        OpType opType;
-        string term;
-        bool isNegated = false;
-        List<Query> clauses = new List<Query>();
+        private OpType opType;
+        private string term;
+        private bool isNegated = false;
+        private List<Query> clauses = new List<Query>();
 
         public Query() { opType = OpType.And; }
 
@@ -53,7 +53,7 @@
             return and;
         }
 
-        static string[] splitString(string str, string[] separators)
+        private static string[] splitString(string str, string[] separators)
         {
             return str.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
@@ -96,7 +96,7 @@
             }
         }
 
-        public List<SearchResult> UnionAll(IEnumerable<List<SearchResult>> listOfLists)
+        private List<SearchResult> UnionAll(IEnumerable<List<SearchResult>> listOfLists)
         {
             var docs = new Dictionary<string, int>();
             foreach (var list in listOfLists)
@@ -110,7 +110,7 @@
             return docs.Select(x => new SearchResult(x.Key, x.Value)).ToList();
         }
 
-        public List<SearchResult> IntersectAll(IEnumerable<List<SearchResult>> listOfLists)
+        private List<SearchResult> IntersectAll(IEnumerable<List<SearchResult>> listOfLists)
         {
             listOfLists.OrderBy(x => x.Count);
 

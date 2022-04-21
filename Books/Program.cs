@@ -58,8 +58,6 @@ namespace Books
                 Console.WriteLine(q);
                 var docs = q.evaluate(reversedIndex);
 
-                // use case и architecture
-
                 var sortedResults = docs.OrderByDescending(item => item.occurrences);
                 foreach (var res in sortedResults)
                 {
